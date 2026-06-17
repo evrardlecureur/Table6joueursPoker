@@ -1,0 +1,51 @@
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# PyTorch checkpoints & Data
+*.pth
+*.pt
+*.npz
+*.json
+
+# Mac OS
+.DS_Store
+
+# === SECRET AI PROJECT FILES ===
+# On ignore tout ce qui est lié à l'entraînement, l'IA et les tests
+/src/trainer/
+/src/agents/deep_cfr_agent.py
+/src/assistant/
+/tests/
+/legacy/
+/scratch/
+/checkpoints*/
+/PlaySlumbot.py
+/TrainV3.py
+/check_deck.py
+/evaluate_pokeriq.py
+/generate_expert_data.py
+/supervised_pretrain.py
+/test_game*.py
+/train_hero.py
+/slumbot*.py
+/*.txt
+/*.md
+!/README.md

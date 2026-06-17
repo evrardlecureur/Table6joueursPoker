@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Winamax SPACE KO - Bot Tester</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #0d0f12;
+            --table-color: #1a1f26;
+            --table-border: #9d4edd;
+            --accent: #e63946;
+            --accent-hover: #ff4d6d;
+            --text: #f8f9fa;
+            --glass: rgba(255, 255, 255, 0.05);
+            --glass-border: rgba(255, 255, 255, 0.1);
+        }
+        body {
+            margin: 0; padding: 0;
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'Outfit', sans-serif;
+            display: flex; flex-direction: column;
+            height: 100vh; overflow: hidden;
+            background-image: radial-gradient(circle at top, #240046 0%, transparent 50%);
+        }
+        header {
+            padding: 20px; text-align: center;
+            font-size: 24px; font-weight: 800; color: #fff;
+            text-transform: uppercase; letter-spacing: 2px;
+            text-shadow: 0 0 10px var(--table-border);
+        }
+        .arena {
+            flex: 1; position: relative;
+            display: flex; justify-content: center; align-items: center;
+        }
+        .table {
+            width: 800px; height: 400px;
+            background: var(--table-color);
+            border-radius: 200px;
+            border: 8px solid var(--table-border);
+            box-shadow: 0 0 50px rgba(157,78,221,0.3), inset 0 0 50px rgba(0,0,0,0.8);
+            position: relative;
+            display: flex; justify-content: center; align-items: center; flex-direction: column;
+        }
+        .pot-area {
+            text-align: center; font-size: 20px;
+            background: var(--glass); padding: 10px 30px;
+            border-radius: 20px; border: 1px solid var(--glass-border);
+            backdrop-filter: blur(10px); margin-bottom: 20px; font-weight: 600;
+        }
+        .board { display: flex; gap: 10px; height: 60px; margin-bottom: 20px; }
+        .card {
+            width: 45px; height: 65px; background: white;
+            border-radius: 5px; color: black; font-weight: bold;
+            display: flex; justify-content: center; align-items: center;
+            font-size: 20px; box-shadow: 0 4px 8px rgba(0,0,0,0.5);
+            transition: transform 0.3s ease;
+        }
+        .card:hover { transform: translateY(-5px); }
+        .card.red { color: #d90429; }
+        .card.black { color: #2b2d42; }
+        .card.hidden {
+            background: repeating-linear-gradient(45deg, #2b2d42, #2b2d42 5px, #8d99ae 5px, #8d99ae 10px);
+            color: transparent; border: 2px solid white;
+        }
+        .player {
+            position: absolute; background: var(--glass);
+            border: 1px solid var(--glass-border); border-radius: 10px;
+            padding: 10px; width: 140px; text-align: center;
+            backdrop-filter: blur(5px); transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+        }
+        .player.active {
+            border-color: #00f5d4;
+            box-shadow: 0 0 20px rgba(0,245,212,0.4);
+            transform: scale(1.05); z-index: 10;
+        }
+        .player.folded { opacity: 0.4; filter: grayscale(100%); }
+        .p-name { font-weight: bold; font-size: 14px; margin-bottom: 5px; color: #fca311; }
+        .p-chips { font-size: 12px; color: #00f5d4; }
+        .p-bet { font-size: 12px; color: #ffb703; margin-top: 5px; background: rgba(0,0,0,0.5); border-radius: 5px; min-height: 15px; }
+        .p-cards { display: flex; justify-content: center; gap: 5px; margin-top: 5px; min-height: 65px; }
+
+        #p0 { bottom: -80px; left: 50%; transform: translateX(-50%); background: rgba(157,78,221,0.2); border-color: #9d4edd; }
+        #p0.active { transform: translateX(-50%) scale(1.05); }
+        #p1 { bottom: 20px; left: -60px; }
+        #p2 { top: 20px; left: -60px; }
+        #p3 { top: -80px; left: 50%; transform: translateX(-50%); }
+        #p3.active { transform: translateX(-50%) scale(1.05); }
+        #p4 { top: 20px; right: -60px; }
+        #p5 { bottom: 20px; right: -60px; }
+
+        .controls {
+            padding: 20px; background: rgba(0,0,0,0.8);
+            border-top: 1px solid var(--table-border);
+            display: flex; justify-content: center; gap: 15px;
+            height: 80px; align-items: center; position: relative; z-index: 20;
+        }
+        button {
+            padding: 15px 30px; border: none; border-radius: 8px;
+            font-size: 16px; font-weight: 600; cursor: pointer;
+            font-family: inherit; text-transform: uppercase;
+            transition: all 0.2s ease; box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+        }
+        button:hover { transform: translateY(-2px); box-shadow: 0 6px 15px rgba(0,0,0,0.4); }
+        button:active { transform: translateY(1px); }
+        button:disabled { opacity: 0.3; cursor: not-allowed; transform: none; box-shadow: none; }
+        .btn-fold { background: #343a40; color: white; }
+        .btn-fold:hover:not(:disabled) { background: #495057; }
+        .btn-call { background: #00b4d8; color: white; min-width: 180px; }
+        .btn-call:hover:not(:disabled) { background: #0096c7; }
+        .btn-raise { background: var(--accent); color: white; }
+        .btn-raise:hover:not(:disabled) { background: var(--accent-hover); }
+
+        .btn-start {
+            position: absolute; bottom: 20px; left: 50%;
+            transform: translateX(-50%);
+            padding: 15px 30px; font-size: 20px;
+            background: linear-gradient(135deg, #f0932b, #eb4d4b);
+            color: white; border: none; border-radius: 30px; cursor: pointer;
+            box-shadow: 0 10px 20px rgba(235,77,75,0.4);
+            z-index: 1000; transition: all 0.3s;
+        }
+        .btn-start:hover { background: linear-gradient(135deg, #eb4d4b, #f0932b); transform: translateX(-50%) scale(1.05); }
+
+        .raise-container { display: flex; flex-direction: column; align-items: center; background: rgba(255,255,255,0.05); padding: 10px; border-radius: 8px; }
+        .raise-slider { margin-top: 10px; width: 150px; cursor: pointer; accent-color: var(--accent); }
+
+        .win-message {
+            position: absolute; bottom: -70px; left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.9); border: 2px solid #00f5d4;
+            padding: 12px 30px; border-radius: 12px;
+            color: white; text-align: center; z-index: 50;
+            box-shadow: 0 0 30px rgba(0,245,212,0.5);
+            animation: popIn 0.4s ease-out; display: none;
+            white-space: nowrap;
+        }
+        .win-message h3 { margin-top: 0; color: #ffb703; font-size: 18px; }
+        @keyframes popIn {
+            0% { transform: translate(-50%, -20px); opacity: 0; }
+            100% { transform: translate(-50%, 0); opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+    <header>SPACE KO Arena - Test des Heuristiques</header>
+    <div class="arena">
+        <button class="btn-start" id="startBtn" onclick="nextHand()">Distribuer la Première Main</button>
+        <div class="table">
+            <div class="pot-area">
+                Pot: <span id="potValue">0</span>
+            </div>
+            <div class="board" id="board"></div>
+            <div class="player" id="p0"><div class="p-name">HERO (Toi)</div><div class="p-chips">-</div><div class="p-bet"></div><div class="p-cards"></div></div>
+            <div class="player" id="p1"><div class="p-name">Vilain_Nit</div><div class="p-chips">-</div><div class="p-bet"></div><div class="p-cards"></div></div>
+            <div class="player" id="p2"><div class="p-name">Vilain_Station</div><div class="p-chips">-</div><div class="p-bet"></div><div class="p-cards"></div></div>
+            <div class="player" id="p3"><div class="p-name">Vilain_Maniac</div><div class="p-chips">-</div><div class="p-bet"></div><div class="p-cards"></div></div>
+            <div class="player" id="p4"><div class="p-name">Vilain_Reg</div><div class="p-chips">-</div><div class="p-bet"></div><div class="p-cards"></div></div>
+            <div class="player" id="p5"><div class="p-name">Vilain_Fish</div><div class="p-chips">-</div><div class="p-bet"></div><div class="p-cards"></div></div>
+        </div>
+    </div>
+    <div class="controls">
+        <button class="btn-fold" id="btnFold" onclick="sendAction(0)" disabled>Se Coucher</button>
+        <button class="btn-call" id="btnCall" onclick="sendAction(1)" disabled>-</button>
+        <div class="raise-container">
+            <button class="btn-raise" id="btnRaise" onclick="sendAction(2)" disabled>Relancer à <span id="raiseAmount">-</span></button>
+            <input type="range" class="raise-slider" id="raiseSlider" min="0" max="0" disabled oninput="updateRaiseBtn()">
+        </div>
+    </div>
+
+    <script>
+        let currentValidActions = [];
+        let currentBB = 1600;
+
+        function formatBB(val) {
+            if (val === undefined || val === null || val === 0) return "0";
+            return (val / currentBB).toFixed(1) + " BB";
+        }
+
+        function formatCard(c) {
+            if (c === "??") return '<div class="card hidden"></div>';
+            const val = c.slice(0, -1);
+            const suit = c.slice(-1);
+            const isRed = suit === '♥' || suit === '♦';
+            return `<div class="card ${isRed ? 'red' : 'black'}">${val}${suit}</div>`;
+        }
+
+        // === Actions du joueur ===
+        async function nextHand() {
+            document.getElementById('startBtn').style.display = 'none';
+            const wm = document.getElementById('winMessage');
+            if (wm) { wm.style.display = 'none'; delete wm.dataset.animated; }
+
+            const res = await fetch('/api/next_hand', { method: 'POST' });
+            const state = await res.json();
+            renderState(state);
+            scheduleBotsIfNeeded(state);
+        }
+
+        async function sendAction(actionType) {
+            let amount = 0;
+            if (actionType === 1) {
+                const act = currentValidActions.find(a => a[0] === 1);
+                if (act) amount = act[1];
+            } else if (actionType === 2) {
+                amount = parseInt(document.getElementById('raiseSlider').value, 10) || 0;
+            }
+            disableControls("Action envoyée...");
+            const res = await fetch('/api/action', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: actionType, amount: amount })
+            });
+            const state = await res.json();
+            renderState(state);
+            scheduleBotsIfNeeded(state);
+        }
+
+        // === UI helpers ===
+        function disableControls(msg) {
+            document.getElementById('btnFold').disabled = true;
+            document.getElementById('btnCall').disabled = true;
+            document.getElementById('btnRaise').disabled = true;
+            document.getElementById('raiseSlider').disabled = true;
+            if (msg) document.getElementById('btnCall').innerHTML = msg;
+        }
+
+        function updateRaiseBtn() {
+            const val = parseInt(document.getElementById('raiseSlider').value, 10);
+            document.getElementById('raiseAmount').innerText = isNaN(val) ? "0" : formatBB(val);
+        }
+
+        function showHeroButtons(actions) {
+            actions.forEach(act => {
+                if (act[0] === 0) document.getElementById('btnFold').disabled = false;
+                if (act[0] === 1) {
+                    document.getElementById('btnCall').disabled = false;
+                    document.getElementById('btnCall').innerHTML =
+                        act[1] === 0 ? "Check" : "Suivre <span>" + formatBB(act[1]) + "</span>";
+                }
+                if (act[0] === 2) {
+                    document.getElementById('btnRaise').disabled = false;
+                    const sl = document.getElementById('raiseSlider');
+                    sl.disabled = false;
+                    sl.min = act[1]; sl.max = act[2]; sl.step = currentBB; sl.value = act[1];
+                    document.getElementById('raiseAmount').innerText = formatBB(act[1]);
+                }
+            });
+        }
+
+        // === Animation des jetons ===
+        function animatePotToPlayer(playerId) {
+            const potEl = document.querySelector('.pot-area');
+            const playerEl = document.getElementById('p' + playerId);
+            if (!potEl || !playerEl) return;
+            const pr = potEl.getBoundingClientRect();
+            const tr = playerEl.getBoundingClientRect();
+            for (let i = 0; i < 6; i++) {
+                setTimeout(() => {
+                    const c = document.createElement('div');
+                    c.innerHTML = '🪙';
+                    c.style.cssText = `position:fixed;z-index:9999;font-size:28px;
+                        top:${pr.top+10}px;left:${pr.left+pr.width/2-14}px;
+                        transition:all 0.7s cubic-bezier(0.25,1,0.5,1)`;
+                    document.body.appendChild(c);
+                    c.getBoundingClientRect();
+                    c.style.top = (tr.top + tr.height/2) + 'px';
+                    c.style.left = (tr.left + tr.width/2 - 14) + 'px';
+                    c.style.transform = 'scale(0.3)'; c.style.opacity = '0';
+                    setTimeout(() => c.remove(), 750);
+                }, i * 120);
+            }
+        }
+
+        // === Rendu de l'état ===
+        function renderState(state) {
+            if (state.status === "no_game") return;
+            currentBB = state.bb || 1600;
+
+            document.getElementById('potValue').innerText = formatBB(state.pot);
+            document.getElementById('board').innerHTML = state.board.map(formatCard).join('');
+
+            state.players.forEach(p => {
+                const el = document.getElementById('p' + p.id);
+                let cls = 'player';
+                if (!p.in_play && p.id !== 0) cls += ' folded';
+                if (state.current_player === p.id && state.round !== 4) cls += ' active';
+                el.className = cls;
+                el.querySelector('.p-name').innerText = p.name + (p.is_all_in ? " (ALL-IN)" : "");
+                el.querySelector('.p-chips').innerText = formatBB(p.chips);
+                el.querySelector('.p-bet').innerText = p.bet > 0 ? "Mise: " + formatBB(p.bet) : "";
+                el.querySelector('.p-cards').innerHTML = p.cards.length > 0 ? p.cards.map(formatCard).join('') : "";
+            });
+
+            currentValidActions = state.valid_actions;
+            disableControls("");
+
+            // Showdown
+            if (state.round === 4) {
+                document.getElementById('startBtn').style.display = 'block';
+                document.getElementById('startBtn').innerText = "Main Suivante ➜";
+                if (state.last_winners && state.last_winners.length > 0) {
+                    let wm = document.getElementById('winMessage');
+                    if (!wm) {
+                        wm = document.createElement('div');
+                        wm.id = 'winMessage'; wm.className = 'win-message';
+                        document.querySelector('.table').appendChild(wm);
+                    }
+                    let h = "<h3>🏆 Résultat</h3>";
+                    state.last_winners.forEach(w => {
+                        h += `<b>${w.name}</b> gagne <b>${formatBB(w.amount)}</b><br><small style="color:#aaa">${w.reason}</small><br>`;
+                    });
+                    wm.innerHTML = h; wm.style.display = 'block';
+                    if (!wm.dataset.animated) {
+                        state.last_winners.forEach(w => animatePotToPlayer(w.id));
+                        wm.dataset.animated = "true";
+                    }
+                }
+                return;
+            }
+
+            // Cacher message victoire précédente
+            const wm = document.getElementById('winMessage');
+            if (wm) { wm.style.display = 'none'; delete wm.dataset.animated; }
+
+            // Tour du Hero (seulement s'il est encore en jeu)
+            if (state.current_player === 0 && state.players[0].in_play) {
+                showHeroButtons(state.valid_actions);
+            }
+        }
+
+        // === Boucle des bots (1 action/seconde) ===
+        function scheduleBotsIfNeeded(state) {
+            if (state.status === "no_game") return;
+            if (state.round === 4) return;
+
+            // Stopper seulement si c'est au hero ET qu'il est encore en jeu
+            if (state.current_player === 0 && state.players[0].in_play) return;
+
+            const botName = state.players[state.current_player].name;
+            disableControls("⏳ " + botName + "...");
+
+            setTimeout(async () => {
+                try {
+                    const res = await fetch('/api/bot_action', { method: 'POST' });
+                    const ns = await res.json();
+                    renderState(ns);
+                    scheduleBotsIfNeeded(ns);
+                } catch(e) {
+                    console.error('Bot chain error:', e);
+                }
+            }, 1000);
+        }
+
+        // Chargement initial
+        fetch('/api/state').then(r => r.json()).then(s => {
+            if (s.status === "ok") { renderState(s); scheduleBotsIfNeeded(s); }
+        });
+    </script>
+</body>
+</html>
